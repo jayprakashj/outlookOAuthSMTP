@@ -8,7 +8,6 @@ Route::get('/connect-ms', [MsMailController::class, 'connect']);
 Route::get('/get-token', [MsMailController::class, 'callback']);
 Route::post('/refresh-token', [MsMailController::class, 'refreshToken']);
 Route::post('/disconnect-current', [MsMailController::class, 'disconnectCurrentAccount']);
-Route::post('/clear-all-tokens', [MsMailController::class, 'clearAllTokens']);
 Route::post('/send-test-email', [MsMailController::class, 'sendTestEmail']);
 Route::post('/token-status', [MsMailController::class, 'getTokenStatus']);
 Route::post('/check-account-status', [MsMailController::class, 'checkAccountStatus']);

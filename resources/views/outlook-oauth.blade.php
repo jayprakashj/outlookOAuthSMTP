@@ -282,9 +282,6 @@
                 <button class="btn btn-danger" id="clearBtn" onclick="disconnectCurrentAccount()" disabled>
                     🗑️ Disconnect Outlook
                 </button>
-                <button class="btn btn-danger" id="clearAllBtn" onclick="clearAllTokens()">
-                    🧹 Clear All Data
-                </button>
             </div>
 
             <div class="loading" id="loading">
@@ -535,42 +532,6 @@
             }
         }
 
-        // Clear all tokens
-        async function clearAllTokens() {
-            if (!confirm('Are you sure you want to clear ALL OAuth data? This will remove all stored credentials for all accounts and reset the application to initial state.')) {
-                return;
-            }
-
-            showLoading(true);
-            try {
-                const response = await fetch('/clear-all-tokens', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken
-                    },
-                    body: JSON.stringify({})
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    showAlert(data.message);
-                    
-                    // Clear the email field and reset UI
-                    document.getElementById('email').value = '';
-                    localStorage.removeItem('outlook_email');
-                    
-                    // Reset UI to initial state
-                    resetUI();
-                } else {
-                    showAlert(data.error, 'error');
-                }
-            } catch (error) {
-                showAlert('Error clearing all tokens: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
 
         // Reset UI to initial state
         function resetUI() {

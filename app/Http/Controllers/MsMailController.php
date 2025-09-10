@@ -255,27 +255,6 @@ class MsMailController extends Controller
         }
     }
 
-    public function clearAllTokens(Request $request) {
-        try {
-            // Clear all Microsoft OAuth accounts
-            $deletedCount = OauthMailAccount::where('provider', 'microsoft')->delete();
-
-            // Clear all session data
-            session()->flush();
-
-            // Clear all OAuth-related cache
-            \Cache::flush();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'All OAuth data cleared successfully. You can now connect with any fresh account.',
-                'cleared_count' => $deletedCount
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'An error occurred: ' . $e->getMessage()], 500);
-        }
-    }
 
     public function disconnectCurrentAccount(Request $request) {
         try {
