@@ -96,7 +96,7 @@ Add these to your `.env` file:
 ```env
 MS_CLIENT_ID=your_microsoft_client_id
 MS_CLIENT_SECRET=your_microsoft_client_secret
-MS_TENANT=common
+MS_TENANT=common  # Supports both personal and work/school accounts
 MS_REDIRECT_URI=http://your-domain.com/get-token
 MS_SCOPES=https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Send offline_access
 ```

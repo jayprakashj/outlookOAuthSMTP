@@ -15,8 +15,12 @@ class MsMailController extends Controller
           'redirect_uri' => env('MS_REDIRECT_URI'),
           'response_mode' => 'query',
           'scope' => 'https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Send offline_access',
+          'prompt' => 'select_account', // Allow user to choose account type
+          'tenant' => 'common', // Explicitly set tenant to common
         ];
-        $url = 'https://login.microsoftonline.com/'.env('MS_TENANT','common').'/oauth2/v2.0/authorize?'.http_build_query($params);
+        
+        // Use 'common' endpoint to allow both personal and work/school accounts
+        $url = 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?'.http_build_query($params);
 
         return redirect()->away($url);
     }
@@ -24,7 +28,7 @@ class MsMailController extends Controller
     public function callback(Request $r) {
         try {
             $token = Http::asForm()->post(
-              'https://login.microsoftonline.com/'.env('MS_TENANT','common').'/oauth2/v2.0/token',
+              'https://login.microsoftonline.com/common/oauth2/v2.0/token',
               [
                 'client_id' => env('MS_CLIENT_ID'),
                 'client_secret' => env('MS_CLIENT_SECRET'),
@@ -81,7 +85,7 @@ class MsMailController extends Controller
                 ->where('email', $email)
                 ->firstOrFail();
 
-            $resp = Http::asForm()->post('https://login.microsoftonline.com/'.env('MS_TENANT','common').'/oauth2/v2.0/token', [
+            $resp = Http::asForm()->post('https://login.microsoftonline.com/common/oauth2/v2.0/token', [
                 'client_id' => env('MS_CLIENT_ID'),
                 'client_secret' => env('MS_CLIENT_SECRET'),
                 'grant_type' => 'refresh_token',
@@ -310,7 +314,7 @@ class MsMailController extends Controller
     
         // Refresh access token if near expiry:
         if ($acct->isTokenExpiringSoon()) {
-            $resp = Http::asForm()->post('https://login.microsoftonline.com/'.env('MS_TENANT','common').'/oauth2/v2.0/token', [
+            $resp = Http::asForm()->post('https://login.microsoftonline.com/common/oauth2/v2.0/token', [
                 'client_id' => env('MS_CLIENT_ID'),
                 'client_secret' => env('MS_CLIENT_SECRET'),
                 'grant_type' => 'refresh_token',
