@@ -279,8 +279,11 @@
                 <button class="btn btn-warning" id="testEmailBtn" onclick="sendTestEmail()" disabled>
                     📧 Send Test Email
                 </button>
-                <button class="btn btn-danger" id="clearBtn" onclick="clearToken()" disabled>
-                    🗑️ Clear/Disconnect
+                <button class="btn btn-danger" id="clearBtn" onclick="disconnectCurrentAccount()" disabled>
+                    🗑️ Disconnect Outlook
+                </button>
+                <button class="btn btn-danger" id="clearAllBtn" onclick="clearAllTokens()">
+                    🧹 Clear All Data
                 </button>
             </div>
 
@@ -489,21 +492,21 @@
             }
         }
 
-        // Clear token
-        async function clearToken() {
+        // Disconnect current account
+        async function disconnectCurrentAccount() {
             const email = document.getElementById('email').value;
             if (!email) {
-                showAlert('Please enter your email address', 'error');
+                showAlert('Please enter your email address first', 'error');
                 return;
             }
 
-            if (!confirm('Are you sure you want to disconnect from Outlook? This will remove all stored credentials.')) {
+            if (!confirm(`Are you sure you want to disconnect from ${email}? This will remove all stored credentials and allow you to connect with a fresh account.`)) {
                 return;
             }
 
             showLoading(true);
             try {
-                const response = await fetch('/clear-token', {
+                const response = await fetch('/disconnect-current', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -515,15 +518,82 @@
                 const data = await response.json();
                 if (data.success) {
                     showAlert(data.message);
-                    checkTokenStatus();
+                    
+                    // Clear the email field and reset UI
+                    document.getElementById('email').value = '';
+                    localStorage.removeItem('outlook_email');
+                    
+                    // Reset UI to initial state
+                    resetUI();
                 } else {
                     showAlert(data.error, 'error');
                 }
             } catch (error) {
-                showAlert('Error clearing token: ' + error.message, 'error');
+                showAlert('Error disconnecting account: ' + error.message, 'error');
             } finally {
                 showLoading(false);
             }
+        }
+
+        // Clear all tokens
+        async function clearAllTokens() {
+            if (!confirm('Are you sure you want to clear ALL OAuth data? This will remove all stored credentials for all accounts and reset the application to initial state.')) {
+                return;
+            }
+
+            showLoading(true);
+            try {
+                const response = await fetch('/clear-all-tokens', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showAlert(data.message);
+                    
+                    // Clear the email field and reset UI
+                    document.getElementById('email').value = '';
+                    localStorage.removeItem('outlook_email');
+                    
+                    // Reset UI to initial state
+                    resetUI();
+                } else {
+                    showAlert(data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error clearing all tokens: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Reset UI to initial state
+        function resetUI() {
+            const statusCard = document.getElementById('statusCard');
+            const connectBtn = document.getElementById('connectBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+            const testEmailBtn = document.getElementById('testEmailBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const testEmailSection = document.getElementById('testEmailSection');
+
+            // Hide status card
+            statusCard.style.display = 'none';
+            
+            // Reset button states
+            connectBtn.disabled = false;
+            refreshBtn.disabled = true;
+            testEmailBtn.disabled = true;
+            clearBtn.disabled = true;
+            testEmailSection.style.display = 'none';
+            
+            // Clear any alerts
+            document.getElementById('successAlert').style.display = 'none';
+            document.getElementById('errorAlert').style.display = 'none';
         }
 
         // Check if we're returning from OAuth callback

@@ -115,16 +115,33 @@ class MsMailController extends Controller
     public function clearToken(Request $request) {
         try {
             $email = $request->input('email');
-            $acct = OauthMailAccount::where('provider', 'microsoft')
+            
+            // Clear all Microsoft OAuth accounts for this email
+            $deletedCount = OauthMailAccount::where('provider', 'microsoft')
                 ->where('email', $email)
-                ->firstOrFail();
+                ->delete();
 
-            $acct->delete();
+            // Also clear any session data
+            session()->forget('connected_email');
+            session()->forget('oauth_data');
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Token cleared successfully'
-            ]);
+            // Clear any cached tokens or data
+            \Cache::forget('oauth_token_' . $email);
+            \Cache::forget('oauth_refresh_' . $email);
+
+            if ($deletedCount > 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'All OAuth data cleared successfully. You can now connect with a fresh account.',
+                    'cleared_count' => $deletedCount
+                ]);
+            } else {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No OAuth data found to clear. You can connect with any account.',
+                    'cleared_count' => 0
+                ]);
+            }
 
         } catch (\Exception $e) {
             return response()->json(['error' => 'An error occurred: ' . $e->getMessage()], 500);
@@ -235,6 +252,77 @@ class MsMailController extends Controller
 
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to check account status: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function clearAllTokens(Request $request) {
+        try {
+            // Clear all Microsoft OAuth accounts
+            $deletedCount = OauthMailAccount::where('provider', 'microsoft')->delete();
+
+            // Clear all session data
+            session()->flush();
+
+            // Clear all OAuth-related cache
+            \Cache::flush();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All OAuth data cleared successfully. You can now connect with any fresh account.',
+                'cleared_count' => $deletedCount
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'An error occurred: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function disconnectCurrentAccount(Request $request) {
+        try {
+            // Get the current connected account from the email field
+            $email = $request->input('email');
+            
+            if (!$email) {
+                return response()->json(['error' => 'No email provided to disconnect'], 400);
+            }
+
+            // Find and delete the current account
+            $acct = OauthMailAccount::where('provider', 'microsoft')
+                ->where('email', $email)
+                ->first();
+
+            if (!$acct) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'No connected account found for this email. You can connect with any account.',
+                    'cleared_count' => 0
+                ]);
+            }
+
+            // Store account info before deletion
+            $accountEmail = $acct->email;
+            $accountDisplayName = $acct->email; // We can get display name from Graph API if needed
+
+            // Delete the account
+            $acct->delete();
+
+            // Clear session data
+            session()->forget('connected_email');
+            session()->forget('oauth_data');
+
+            // Clear cached tokens
+            \Cache::forget('oauth_token_' . $email);
+            \Cache::forget('oauth_refresh_' . $email);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully disconnected from {$accountEmail}. You can now connect with a fresh account.",
+                'disconnected_email' => $accountEmail,
+                'cleared_count' => 1
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'An error occurred: ' . $e->getMessage()], 500);
         }
     }
 
